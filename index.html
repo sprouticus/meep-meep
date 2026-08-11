@@ -88,6 +88,8 @@
 
   .screen{
     flex:1;
+    min-height:0;
+    padding-bottom:18px;
     overflow-y:auto;
     overflow-x:hidden;
     -webkit-overflow-scrolling:touch;
@@ -775,12 +777,17 @@
   }
   .expand-action:active{ transform:scale(0.97); }
 
+  /* Pinned to the bottom of the device frame at any screen size: it is a
+     flex sibling of .screen (which takes flex:1), not part of the scroll area. */
   .footer-note{
+    flex:0 0 auto;
     text-align:center;
     font-size:10.5px;
     color:var(--ink-soft);
-    padding:18px 24px 4px;
-    line-height:1.5;
+    padding:9px 24px;
+    line-height:1.4;
+    background:var(--sand-200);
+    border-top:1px solid var(--line);
   }
 
   .sr-only{
@@ -826,9 +833,10 @@
       <!-- populated by JS -->
     </div>
 
-    <div class="footer-note safe-bottom">
-      Sample schedule for prototype purposes.
-    </div>
+  </div>
+
+  <div class="footer-note safe-bottom">
+    Trains may be delayed.
   </div>
 
   <div class="sheet-overlay" id="sheetOverlay">
@@ -897,58 +905,143 @@
     { id:"santafe",   name:"Santa Fe Depot" }
   ];
 
-  // minutes to travel from STATIONS[i] to STATIONS[i+1]
-  var SEG_MIN = [12,10,8,7,6,4,6,5,5,10,15,5,4,3];
-  var DWELL = 1;
+  // Real NM Rail Runner schedule, from Rio Metro's official GTFS feed
+  // feed_version 20260727 · valid 2026-07-15 through 2027-04-30
+  // [trainNo, service, direction, isExpress, [[stationIdx, minutesAfterMidnight], ...]]
+  var TRIPS = [
+    ["702","sa","N",0,[[0,444],[1,454],[2,465],[3,473],[4,484],[5,493],[6,499],[7,504],[8,512],[9,516],[10,534],[11,555],[12,566],[13,574],[14,579]]],
+    ["704","sa","N",0,[[0,560],[1,570],[2,581],[3,589],[4,608],[5,617],[6,623],[7,628],[8,637],[9,641],[10,664],[11,685],[12,696],[13,704],[14,710]]],
+    ["706","sa","N",0,[[0,750],[1,760],[2,771],[3,779],[4,794],[5,803],[6,809],[7,814],[8,822],[9,826],[10,844],[11,865],[12,876],[13,884],[14,889]]],
+    ["708","sa","N",0,[[4,911],[5,920],[6,926],[7,931],[8,940],[9,945],[10,970],[11,991],[12,1002],[13,1010],[14,1016]]],
+    ["710","sa","N",0,[[0,1060],[1,1070],[2,1081],[3,1089],[4,1100],[5,1109],[6,1115],[7,1120],[8,1128],[9,1132],[10,1150],[11,1171],[12,1182],[13,1190],[14,1195]]],
+    ["712","sa","N",0,[[0,1183],[1,1193],[2,1204],[3,1212],[4,1223],[5,1232],[6,1238],[7,1243],[8,1251],[9,1255],[10,1273],[11,1294],[12,1305],[13,1313],[14,1318]]],
+    ["714","sa","N",0,[[0,1360],[1,1370],[2,1382],[3,1388],[4,1396]]],
+    ["703","sa","S",0,[[4,501],[3,511],[2,519],[1,530],[0,540]]],
+    ["705","sa","S",0,[[14,600],[13,605],[12,613],[11,622],[10,640],[9,662],[8,665],[7,674],[6,679],[5,685],[4,695],[3,705],[2,713],[1,724],[0,734]]],
+    ["707","sa","S",0,[[14,777],[13,783],[12,791],[11,801],[10,820],[9,844],[8,848],[7,857],[6,863],[5,868],[4,878]]],
+    ["709","sa","S",0,[[14,905],[13,910],[12,918],[11,927],[10,945],[9,963],[8,966],[7,975],[6,980],[5,986],[4,999],[3,1010],[2,1018],[1,1030],[0,1040]]],
+    ["713","sa","S",0,[[14,1083],[13,1089],[12,1097],[11,1107],[10,1126],[9,1150],[8,1154],[7,1163],[6,1168],[5,1174],[4,1184]]],
+    ["711","sa","S",0,[[4,1131],[3,1141],[2,1149],[1,1160],[0,1170]]],
+    ["715","sa","S",0,[[14,1210],[13,1215],[12,1223],[11,1232],[10,1250],[9,1273],[8,1276],[7,1285],[6,1290],[5,1296],[4,1306],[3,1316],[2,1324],[1,1335],[0,1345]]],
+    ["717","sa","S",0,[[14,1334],[13,1339],[12,1347],[11,1356],[10,1374],[9,1393],[8,1396],[7,1405],[6,1410],[5,1416],[4,1425]]],
+    ["702","su","N",0,[[0,444],[1,454],[2,465],[3,473],[4,484],[5,493],[6,499],[7,504],[8,512],[9,516],[10,534],[11,555],[12,566],[13,574],[14,579]]],
+    ["706","su","N",0,[[0,750],[1,760],[2,771],[3,779],[4,794],[5,803],[6,809],[7,814],[8,822],[9,826],[10,844],[11,865],[12,876],[13,884],[14,889]]],
+    ["708","su","N",0,[[4,911],[5,920],[6,926],[7,931],[8,940],[9,945],[10,970],[11,991],[12,1002],[13,1010],[14,1016]]],
+    ["710","su","N",0,[[0,1060],[1,1070],[2,1081],[3,1089],[4,1100],[5,1109],[6,1115],[7,1120],[8,1128],[9,1132],[10,1150],[11,1171],[12,1182],[13,1190],[14,1195]]],
+    ["701","su","S",0,[[4,390],[3,400],[2,408],[1,419],[0,429]]],
+    ["705","su","S",0,[[14,600],[13,605],[12,613],[11,622],[10,640],[9,662],[8,665],[7,674],[6,679],[5,685],[4,695],[3,705],[2,713],[1,724],[0,734]]],
+    ["709","su","S",0,[[14,905],[13,910],[12,918],[11,927],[10,945],[9,963],[8,966],[7,975],[6,980],[5,986],[4,999],[3,1010],[2,1018],[1,1030],[0,1040]]],
+    ["713","su","S",0,[[14,1083],[13,1089],[12,1097],[11,1107],[10,1126],[9,1150],[8,1154],[7,1163],[6,1168],[5,1174],[4,1184]]],
+    ["719","su","S",0,[[14,1210],[13,1215],[12,1223],[11,1232],[10,1250],[9,1268],[8,1271],[7,1280],[6,1285],[5,1291],[4,1301]]],
+    ["525","tf","S",0,[[14,1325],[13,1330],[12,1337],[11,1349],[10,1367],[9,1386],[8,1390],[7,1399],[6,1404],[5,1409],[4,1417]]],
+    ["502","wk","N",0,[[4,272],[5,281],[6,287],[7,292],[8,301],[9,305],[10,325],[11,348],[12,363],[13,373],[14,378]]],
+    ["504","wk","N",0,[[4,302],[5,311],[6,317],[7,322],[8,331],[9,335],[10,355],[11,378],[12,388],[13,398],[14,403]]],
+    ["102 Express","wk","N",1,[[0,336],[1,346],[2,359],[3,367],[4,379],[5,388],[6,394],[9,406],[10,425],[11,445],[13,463],[14,468]]],
+    ["506","wk","N",0,[[0,395],[1,406],[2,419],[3,426],[4,439],[5,449],[6,456],[7,462],[8,472],[9,476],[10,498],[11,519],[12,529],[13,536],[14,541]]],
+    ["508","wk","N",0,[[0,484],[1,495],[2,507],[3,515],[4,523]]],
+    ["510","wk","N",0,[[4,575],[5,584],[6,590],[7,595],[8,603],[9,608],[10,628],[11,651],[12,661],[13,671],[14,676]]],
+    ["512","wk","N",0,[[0,585],[1,596],[2,608],[3,616],[4,624]]],
+    ["514","wk","N",0,[[4,744],[5,753],[6,759],[7,764],[8,773],[9,778],[10,798],[11,823],[12,834],[13,843],[14,848]]],
+    ["104 Express","wk","N",1,[[4,859],[5,872],[6,878],[9,889],[10,909],[11,929],[13,947],[14,952]]],
+    ["516","wk","N",0,[[0,935],[1,946],[2,959],[3,966],[4,986],[5,995],[6,1001],[7,1006],[8,1014],[9,1019],[10,1039],[11,1063],[12,1075],[13,1082],[14,1087]]],
+    ["518","wk","N",0,[[4,1054],[5,1063],[6,1069],[7,1074],[8,1087],[9,1092],[10,1114],[11,1137],[12,1149],[13,1159],[14,1164]]],
+    ["520","wk","N",0,[[0,1071],[1,1081],[2,1100],[3,1109],[4,1128],[5,1138],[6,1146],[7,1152],[8,1163],[9,1168],[10,1190],[11,1213],[12,1223],[13,1233],[14,1238]]],
+    ["522","wk","N",0,[[0,1141],[1,1152],[2,1173],[3,1181],[4,1190]]],
+    ["524","wk","N",0,[[0,1203],[1,1214],[2,1228],[3,1236],[4,1245]]],
+    ["501","wk","S",0,[[4,285],[3,294],[2,301],[1,313],[0,324]]],
+    ["503","wk","S",0,[[4,327],[3,338],[2,346],[1,363],[0,374]]],
+    ["505","wk","S",0,[[14,339],[13,344],[12,351],[11,361],[10,379],[9,398],[8,403],[7,412],[6,417],[5,422],[4,430],[3,439],[2,447],[1,459],[0,470]]],
+    ["507","wk","S",0,[[14,428],[13,433],[12,440],[11,457],[10,475],[9,494],[8,498],[7,507],[6,512],[5,517],[4,528],[3,537],[2,544],[1,557],[0,569]]],
+    ["509","wk","S",0,[[14,611],[13,617],[12,623],[11,635],[10,652],[9,671],[8,675],[7,684],[6,689],[5,695],[4,704]]],
+    ["511","wk","S",0,[[14,730],[13,736],[12,744],[11,756],[10,774],[9,796],[8,800],[7,809],[6,815],[5,820],[4,828]]],
+    ["513","wk","S",0,[[14,782],[13,787],[12,794],[11,806],[10,824],[9,843],[8,847],[7,856],[6,861],[5,866],[4,882],[3,891],[2,898],[1,911],[0,923]]],
+    ["515","wk","S",0,[[14,886],[13,892],[12,900],[11,911],[10,934],[9,954],[8,958],[7,967],[6,973],[5,979],[4,1003],[3,1012],[2,1019],[1,1032],[0,1044]]],
+    ["517","wk","S",0,[[14,975],[13,980],[12,987],[11,999],[10,1017],[9,1036],[8,1040],[7,1049],[6,1054],[5,1059],[4,1070],[3,1080],[2,1087],[1,1103],[0,1115]]],
+    ["101 Express","wk","S",1,[[14,1024],[13,1029],[11,1046],[9,1082],[6,1096],[5,1101],[4,1112]]],
+    ["519","wk","S",0,[[14,1050],[13,1055],[12,1062],[11,1074],[10,1092],[9,1111],[8,1115],[7,1124],[6,1129],[5,1134],[4,1143],[3,1152],[2,1160],[1,1174],[0,1186]]],
+    ["521","wk","S",0,[[14,1126],[13,1131],[12,1138],[11,1150],[10,1168],[9,1187],[8,1191],[7,1200],[6,1205],[5,1210],[4,1218]]],
+    ["523","wk","S",0,[[14,1260],[13,1265],[12,1272],[11,1284],[10,1302],[9,1321],[8,1325],[7,1334],[6,1339],[5,1344],[4,1352]]]
+  ];
+
+  // service code active on each weekday, JS getDay() order: Sun..Sat
+  var SERVICE_BY_DAY = [["su"],["wk"],["wk"],["wk"],["wk","tf"],["wk","tf"],["sa"]];
+
+  // holiday overrides: 1 = service added, 2 = service removed
+  var SERVICE_EXCEPTIONS = {"20260907":{"wk":2},"20261126":{"wk":2,"tf":2},"20261127":{"wk":2,"sa":1,"tf":2},"20261225":{"wk":2,"tf":2},"20270101":{"wk":2,"tf":2},"20270118":{"wk":2,"sa":1}};
 
   function toMin(hhmm){
     var p = hhmm.split(":");
     return parseInt(p[0],10)*60 + parseInt(p[1],10);
   }
 
-  // Departure anchor times at the *origin* of each direction.
-  var NORTH_ORIGINS = [ // depart Belen
-    ["05:15",false],["06:10",true],["07:05",false],["08:10",false],
-    ["09:40",false],["11:10",false],["12:40",false],["14:10",false],
-    ["15:40",true],["17:10",false],["18:40",false],["20:10",false]
-  ];
-  var SOUTH_ORIGINS = [ // depart Santa Fe Depot
-    ["05:39",true],["07:08",false],["08:35",false],["10:11",false],
-    ["11:45",false],["13:15",false],["14:45",false],["16:15",true],
-    ["17:45",false],["19:15",false],["20:45",false]
-  ];
-
-  function buildTrains(direction, originList){
-    var order = direction === "N"
-      ? STATIONS.map(function(s,i){return i;})
-      : STATIONS.map(function(s,i){return i;}).reverse();
-
-    var trains = [];
-    originList.forEach(function(entry, tIndex){
-      var startMin = toMin(entry[0]);
-      var express = entry[1];
-      var t = startMin;
-      var stops = {};
-      order.forEach(function(stationIdx, k){
-        if(k === 0){
-          stops[stationIdx] = { time:t, stops:true };
-          return;
-        }
-        var prevIdx = order[k-1];
-        var segIdx = Math.min(prevIdx, stationIdx);
-        t += SEG_MIN[segIdx];
-        var isLast = (k === order.length-1);
-        var skip = express && STATIONS[stationIdx].minor && !isLast;
-        stops[stationIdx] = { time:t, stops: !skip };
-        if(!skip) t += DWELL;
-      });
-      trains.push({ id:direction+"-"+tIndex, direction:direction, express:express, stops:stops });
-    });
-    return trains;
+  function ymd(d){
+    var m = d.getMonth()+1, day = d.getDate();
+    return "" + d.getFullYear() + (m<10?"0":"") + m + (day<10?"0":"") + day;
   }
 
-  var TRAINS_N = buildTrains("N", NORTH_ORIGINS);
-  var TRAINS_S = buildTrains("S", SOUTH_ORIGINS);
+  // Which service patterns run on a given date, after holiday overrides.
+  function activeServices(date){
+    var codes = SERVICE_BY_DAY[date.getDay()].slice();
+    var ex = SERVICE_EXCEPTIONS[ymd(date)];
+    if(ex){
+      Object.keys(ex).forEach(function(code){
+        var i = codes.indexOf(code);
+        if(ex[code] === 2){ if(i > -1) codes.splice(i,1); }       // removed
+        else if(ex[code] === 1){ if(i === -1) codes.push(code); }  // added
+      });
+    }
+    return codes;
+  }
+
+  // Build the day's trains in the shape the rest of the app expects.
+  function buildTrainsForDate(date){
+    var codes = activeServices(date);
+    var out = { N: [], S: [] };
+    TRIPS.forEach(function(t){
+      var no = t[0], svc = t[1], dir = t[2], express = !!t[3], stopList = t[4];
+      if(codes.indexOf(svc) === -1) return;
+      var stops = {};
+      stopList.forEach(function(s){
+        stops[s[0]] = { time: s[1], stops: true };
+      });
+      out[dir].push({
+        id: svc + "-" + dir + "-" + no,
+        trainNo: no,
+        direction: dir,
+        express: express,
+        stops: stops
+      });
+    });
+    out.N.sort(function(a,b){ return a.stops[Object.keys(a.stops)[0]].time - b.stops[Object.keys(b.stops)[0]].time; });
+    out.S.sort(function(a,b){ return a.stops[Object.keys(a.stops)[0]].time - b.stops[Object.keys(b.stops)[0]].time; });
+    return out;
+  }
+
+  var TODAY = buildTrainsForDate(new Date());
+  var TRAINS_N = TODAY.N;
+  var TRAINS_S = TODAY.S;
+  var NO_SERVICE_TODAY = (TRAINS_N.length + TRAINS_S.length) === 0;
+
+  // First departure on the next day that actually has service (for the empty state).
+  function getFirstTrainNextServiceDay(){
+    var d = new Date();
+    for(var i=1; i<=8; i++){
+      var probe = new Date(d.getFullYear(), d.getMonth(), d.getDate()+i);
+      var t = buildTrainsForDate(probe);
+      var pool = (state.direction === "N" ? t.N : t.S);
+      var best = null;
+      pool.forEach(function(train){
+        var dep = train.stops[state.fromIdx];
+        var arr = train.stops[state.toIdx];
+        if(!dep || !arr) return;
+        if(best === null || dep.time < best) best = dep.time;
+      });
+      if(best !== null){
+        return { min: best, date: probe, daysAhead: i };
+      }
+    }
+    return null;
+  }
 
   // ---------------- Ticket links (by device type) ----------------
   var TICKET_LINKS = {
@@ -1168,16 +1261,32 @@
     var isMyTrainMode = !!selectedTrip;
 
     if(!heroTrip){
-      var first = trips[0];
-      var firstLabel = "—";
-      if(first){
-        var ft = fmtTime(first.depMin);
-        firstLabel = ft.time + " " + ft.ap;
+      var nxt = getFirstTrainNextServiceDay();
+      var nextLabel = "—";
+      if(nxt){
+        var ft = fmtTime(nxt.min);
+        var dayWord = nxt.daysAhead === 1
+          ? "tomorrow"
+          : nxt.date.toLocaleDateString(undefined, { weekday:"long" });
+        nextLabel = "First train " + dayWord + " · " + ft.time + " " + ft.ap;
       }
-      html += '<div class="state-card"><div class="icon">🌅</div>' +
-        '<h3>No more trains today</h3>' +
-        '<p>' + fromName + ' → ' + toName + ' service has wrapped up for today.</p>' +
-        '<span class="next-tomorrow">First train tomorrow · ' + firstLabel + '</span></div>';
+
+      if(NO_SERVICE_TODAY){
+        html += '<div class="state-card"><div class="icon">🚫</div>' +
+          '<h3>No service today</h3>' +
+          '<p>The Rail Runner isn’t running today — it’s a holiday on Rio Metro’s calendar.</p>' +
+          '<span class="next-tomorrow">' + nextLabel + '</span></div>';
+      } else if(allTrips.length === 0){
+        html += '<div class="state-card"><div class="icon">🛤️</div>' +
+          '<h3>No direct trains</h3>' +
+          '<p>No train runs ' + fromName + ' → ' + toName + ' today. Some trains only cover part of the line.</p>' +
+          '<span class="next-tomorrow">' + nextLabel + '</span></div>';
+      } else {
+        html += '<div class="state-card"><div class="icon">🌅</div>' +
+          '<h3>No more trains today</h3>' +
+          '<p>' + fromName + ' → ' + toName + ' service has wrapped up for today.</p>' +
+          '<span class="next-tomorrow">' + nextLabel + '</span></div>';
+      }
       html += '<div class="list-head"><h2>Today’s Departures</h2>' + buildFilterDropdown() + '</div>';
     } else {
       var mins = heroTrip.depMin - now;
