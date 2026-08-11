@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meep Meep · NM Rail Runner</title>
+<meta name="description" content="Meep Meep — a mobile app prototype for the New Mexico Rail Runner Express. Next-train countdown, editable route, and full daily departures.">
+<meta name="theme-color" content="#7A4E2E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Meep Meep · NM Rail Runner">
+<meta property="og:description" content="A mobile app prototype for the New Mexico Rail Runner Express — next-train countdown, editable route, and full daily departures.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sand-100:#FFEDCB;
+    --sand-200:#EFE0C4;
+    --sand-300:#E4CDA0;
+    --tan-400:#D5B27E;
+    --tan-500:#C2996A;
+    --adobe-600:#A6764C;
+    --brown-700:#7A4E2E;
+    --brown-800:#5A3821;
+    --brown-900:#3B2415;
+    --cream:#FFF9EE;
+    --red:#C1392B;
+    --red-dark:#9B2F22;
+    --red-light:#CC5747;
+    --yellow:#DEA01E;
+    --yellow-dark:#D9A200;
+    --blue:#0177C0;
+    --blue-dark:#015C90;
+    --ink:#3B2415;
+    --ink-soft:#7A5C3E;
+    --line:#D8BE94;
+    --shadow-soft: 0 10px 24px rgba(59,36,21,0.14);
+    --shadow-card: 0 4px 14px rgba(90,56,33,0.10);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    min-height:100dvh;
+    font-family:'Inter',system-ui,sans-serif;
+    background: radial-gradient(circle at 20% 10%, #4a3520 0%, #2b1c10 55%, #1c1209 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- Phone frame: locks the app to mobile dimensions on any viewport ---------- */
+  .device{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    height:100dvh;
+    max-width:428px;
+    max-height:926px;
+    background:var(--sand-100);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+
+  @media (min-width:480px) and (min-height:700px){
+    .device{
+      width:412px;
+      height:890px;
+      border-radius:46px;
+      box-shadow: var(--shadow-soft), 0 0 0 10px #1a1109, 0 0 0 11px #4a3520;
+    }
+    .device::before{
+      content:"";
+      position:absolute;
+      top:14px; left:50%;
+      transform:translateX(-50%);
+      width:120px; height:26px;
+      background:#1a1109;
+      border-radius:20px;
+      z-index:50;
+    }
+  }
+
+  .screen{
+    flex:1;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    background:
+      radial-gradient(ellipse 480px 220px at 85% -8%, rgba(242,183,5,0.20), transparent 60%),
+      radial-gradient(ellipse 420px 200px at -10% 0%, rgba(1,119,192,0.14), transparent 55%),
+      var(--sand-100);
+  }
+  .screen::-webkit-scrollbar{display:none;}
+
+  .safe-top{ padding-top: max(20px, env(safe-area-inset-top)); }
+  .safe-bottom{ padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+
+  @media (min-width:480px) and (min-height:700px){
+    .safe-top{ padding-top:52px; }
+  }
+
+  /* ---------- Header ---------- */
+  .header{
+    padding-left:20px;
+    padding-right:20px;
+    padding-bottom:14px;
+  }
+  .header-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+  .brand-mark{
+    width:38px;height:38px;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--red);
+    border-radius:11px;
+    box-shadow: var(--shadow-card);
+    flex-shrink:0;
+    overflow:hidden;
+  }
+  .brand-mark img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .brand-name{
+    font-family:'Inter',system-ui,sans-serif;
+    font-weight:700;
+    font-size:20px;
+    letter-spacing:0.2px;
+    color:var(--brown-900);
+    line-height:1;
+  }
+  .brand-sub{
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:1.1px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-top:3px;
+  }
+  .date-label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    color:var(--brown-800);
+    font-size:11.5px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .date-label .date-icon{
+    width:14px;
+    height:14px;
+    flex-shrink:0;
+  }
+
+  /* ---------- Direction toggle ---------- */
+  .section{ padding:0 20px; margin-top:16px; }
+  .label-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:9px;
+  }
+  .eyebrow{
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+
+  .direction-toggle{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .dir-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    padding:12px 10px;
+    border-radius:14px;
+    border:1.5px solid var(--line);
+    background:var(--cream);
+    color:var(--brown-800);
+    font-family:'Inter',system-ui,sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .dir-btn svg{ width:16px; height:16px; }
+  .dir-btn.active{
+    background:var(--blue);
+    border-color:var(--blue-dark);
+    color:#fff;
+    box-shadow: var(--shadow-card);
+    transform:translateY(-1px);
+  }
+  .dir-btn:active{ transform:scale(0.98); }
+
+  /* ---------- Trip ticket card ---------- */
+  .ticket{
+    margin-top:14px;
+    background:var(--cream);
+    border-radius:18px;
+    box-shadow:var(--shadow-card);
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .ticket-row{
+    display:flex;
+    align-items:center;
+    padding:14px 16px;
+    gap:12px;
+  }
+  .ticket-dot{
+    width:9px;height:9px;
+    border-radius:50%;
+    flex-shrink:0;
+  }
+  .ticket-dot.from{ background:var(--blue); }
+  .ticket-dot.to{ background:var(--red); }
+  .ticket-field{ flex:1; min-width:0; }
+  .ticket-field label{
+    display:block;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.8px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:2px;
+  }
+  .ticket-select{
+    appearance:none;
+    -webkit-appearance:none;
+    border:none;
+    background:transparent;
+    font-family:'Inter',system-ui,sans-serif;
+    font-weight:600;
+    font-size:16px;
+    color:var(--brown-900);
+    width:100%;
+    padding:2px 20px 2px 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%237A5C3E'><path d='M5.5 7.5l4.5 4.5 4.5-4.5' stroke='%237A5C3E' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right center;
+    background-size:16px;
+  }
+  .ticket-select:focus{ outline:none; }
+  .ticket-divider{
+    height:1px;
+    margin:0 16px;
+    background-image: linear-gradient(to right, var(--line) 50%, transparent 0%);
+    background-size:9px 1px;
+    background-repeat:repeat-x;
+  }
+  .swap-wrap{
+    display:flex;
+    justify-content:flex-end;
+    padding:0 14px;
+    margin-top:-13px;
+    position:relative;
+    z-index:2;
+    pointer-events:none;
+  }
+  .swap-btn{
+    pointer-events:auto;
+    width:30px;height:30px;
+    border-radius:50%;
+    background:var(--yellow);
+    border:2px solid var(--sand-100);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    box-shadow:0 2px 6px rgba(59,36,21,0.25);
+  }
+  .swap-btn svg{ width:14px;height:14px; }
+  .swap-btn:active{ transform:scale(0.92); }
+
+  /* ---------- Compact route bar (replaces persistent pickers) ---------- */
+  .route-bar{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background:var(--cream);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:12px 14px;
+    box-shadow:var(--shadow-card);
+    font-family:inherit;
+    cursor:pointer;
+    text-align:left;
+  }
+  .route-bar-left{ min-width:0; }
+  .dir-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    color:var(--blue-dark);
+    background:rgba(1,119,192,0.12);
+    padding:3px 9px;
+    border-radius:20px;
+    margin-bottom:6px;
+  }
+  .route-bar-title{
+    font-family:'Inter',system-ui,sans-serif;
+    font-weight:600;
+    font-size:16.5px;
+    color:var(--brown-900);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .route-bar-title .arrow{ color:var(--red); margin:0 5px; }
+  .edit-icon{
+    flex-shrink:0;
+    width:34px;height:34px;
+    border-radius:50%;
+    background:transparent;
+    border:1.5px solid var(--red);
+    color:var(--red);
+    display:flex;align-items:center;justify-content:center;
+    transition:background .15s ease, color .15s ease;
+  }
+  .edit-icon.is-active{
+    background:var(--red);
+    color:#fff;
+  }
+  .edit-icon svg{ width:15px;height:15px; }
+
+  /* ---------- Filter dropdown ---------- */
+  .filter-dropdown{
+    position:relative;
+  }
+  .filter-dropdown-btn{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    padding:7px 12px;
+    border-radius:20px;
+    border:1.5px solid var(--line);
+    background:var(--cream);
+    color:var(--brown-800);
+    cursor:pointer;
+  }
+  .filter-dropdown-btn .chevron{
+    width:14px;
+    height:14px;
+    transition:transform 0.15s ease;
+  }
+  .filter-dropdown.open .filter-dropdown-btn{
+    border-color:var(--brown-900);
+  }
+  .filter-dropdown.open .filter-dropdown-btn .chevron{
+    transform:rotate(180deg);
+  }
+  .filter-dropdown-menu{
+    display:none;
+    position:absolute;
+    top:calc(100% + 6px);
+    right:0;
+    min-width:120px;
+    background:var(--cream);
+    border:1px solid var(--line);
+    border-radius:12px;
+    box-shadow:var(--shadow-card);
+    padding:4px;
+    z-index:20;
+  }
+  .filter-dropdown.open .filter-dropdown-menu{
+    display:block;
+  }
+  .filter-dropdown-option{
+    display:block;
+    width:100%;
+    text-align:left;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    padding:8px 10px;
+    border-radius:8px;
+    border:none;
+    background:transparent;
+    color:var(--brown-800);
+    cursor:pointer;
+  }
+  .filter-dropdown-option.active{
+    background:var(--brown-900);
+    color:#fff;
+  }
+
+  /* ---------- Bottom sheet (trip editor) ---------- */
+  .sheet-overlay{
+    position:absolute;
+    inset:0;
+    background:rgba(28,18,9,0.45);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .22s ease;
+    z-index:40;
+    display:flex;
+    align-items:flex-end;
+  }
+  .sheet-overlay.open{
+    opacity:1;
+    pointer-events:auto;
+  }
+  .sheet{
+    width:100%;
+    background:var(--sand-100);
+    border-radius:24px 24px 0 0;
+    padding:10px 20px 24px;
+    transform:translateY(100%);
+    transition:transform .28s cubic-bezier(.25,.8,.35,1);
+    box-shadow:0 -12px 30px rgba(28,18,9,0.25);
+    max-height:82%;
+    overflow-y:auto;
+  }
+  .sheet-overlay.open .sheet{ transform:translateY(0); }
+  .sheet-handle{
+    width:38px;height:4px;
+    border-radius:4px;
+    background:var(--line);
+    margin:6px auto 14px;
+  }
+  .sheet h3{
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:17px;
+    margin:0 0 14px;
+    color:var(--brown-900);
+  }
+  .sheet-done{
+    width:100%;
+    margin-top:16px;
+    background:var(--blue);
+    color:#fff;
+    border:none;
+    border-radius:14px;
+    padding:14px;
+    font-family:'Inter',system-ui,sans-serif;
+    font-weight:600;
+    font-size:15.5px;
+    cursor:pointer;
+  }
+  .sheet-done:active{ transform:scale(0.98); }
+
+  /* ---------- Hero next-train card ---------- */
+  .hero{
+    margin-top:18px;
+    border-radius:20px;
+    padding:20px 20px 18px;
+    background: linear-gradient(150deg, var(--blue) 0%, var(--blue-dark) 68%, #073650 100%);
+    color:#fff;
+    box-shadow: 0 10px 22px rgba(1,92,144,0.35);
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:"";
+    position:absolute;
+    right:-30px; bottom:-40px;
+    width:150px;height:150px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.06);
+  }
+  .hero-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    position:relative;
+    z-index:1;
+  }
+  .hero-eyebrow{
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:rgba(255,255,255,0.78);
+  }
+  .badge{
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:0.5px;
+    padding:4px 9px;
+    border-radius:20px;
+    background:var(--yellow);
+    color:var(--brown-900);
+  }
+
+  .hero-countdown{
+    display:flex;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:6px;
+    position:relative;
+    z-index:1;
+  }
+  .hero-countdown .num{
+    font-family:'Inter',system-ui,sans-serif;
+    font-weight:700;
+    font-size:56px;
+    line-height:1;
+    color:var(--yellow);
+  }
+  .hero-countdown .unit{
+    font-family:'Inter',system-ui,sans-serif;
+    font-weight:600;
+    font-size:18px;
+    color:rgba(255,255,255,0.92);
+  }
+
+  .hero-route{
+    margin-top:12px;
+    font-size:15px;
+    font-weight:600;
+    color:#fff;
+    position:relative;
+    z-index:1;
+  }
+  .hero-route .arrow{ color:var(--yellow); margin:0 6px; }
+
+  .hero-times{
+    display:flex;
+    gap:22px;
+    margin-top:14px;
+    position:relative;
+    z-index:1;
+  }
+  .hero-time-block .k{
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.8px;
+    text-transform:uppercase;
+    color:rgba(255,255,255,0.65);
+    margin-bottom:2px;
+  }
+  .hero-time-block .v{
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:19px;
+    font-weight:600;
+  }
+
+
+  /* ---------- Empty / done states ---------- */
+  .state-card{
+    margin-top:18px;
+    background:var(--cream);
+    border:1.5px dashed var(--tan-500);
+    border-radius:18px;
+    padding:26px 20px;
+    text-align:center;
+  }
+  .state-card .icon{ font-size:30px; margin-bottom:8px; }
+  .state-card h3{
+    font-family:'Inter',system-ui,sans-serif;
+    margin:0 0 4px;
+    font-size:16.5px;
+    color:var(--brown-900);
+  }
+  .state-card p{
+    margin:0;
+    font-size:13px;
+    color:var(--ink-soft);
+    line-height:1.45;
+  }
+  .state-card .next-tomorrow{
+    display:inline-block;
+    margin-top:12px;
+    background:var(--blue);
+    color:#fff;
+    font-weight:700;
+    font-size:13px;
+    padding:8px 14px;
+    border-radius:12px;
+  }
+
+  /* ---------- Departures list ---------- */
+  .list-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin:20px 0 10px;
+  }
+  .list-head h2{
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:15.5px;
+    margin:0;
+    color:var(--brown-900);
+  }
+
+  .dep-row{
+    background:var(--cream);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 14px;
+    margin-bottom:9px;
+    cursor:pointer;
+    transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .dep-row.is-my-train{
+    border-color:#897456;
+    box-shadow:0 0 0 1.5px #897456;
+  }
+  .dep-row-top{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .dep-time-col{ width:64px; flex-shrink:0; }
+  .dep-time-col .t{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    font-family:'Inter',system-ui,sans-serif;
+    font-weight:600;
+    font-size:15.5px;
+    color:var(--brown-900);
+  }
+  .dep-row.is-my-train .dep-time-col .t{ font-weight:800; }
+  .dep-time-col .t .star-badge{ width:12px;height:12px; flex-shrink:0; }
+  .dep-time-col .ap{
+    font-size:10px;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .dep-mid{ flex:1; min-width:0; }
+  .dep-mid .dots-row{
+    display:flex;
+    align-items:center;
+    gap:3px;
+    margin-top:5px;
+  }
+  .dep-mid .dots-row .end{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--blue);
+    flex-shrink:0;
+  }
+  .dep-mid .dots-row .end.last{ background:var(--red); }
+  .dep-mid .dots-row .track{
+    flex:1;
+    height:2px;
+    background:var(--line);
+    position:relative;
+  }
+  .dep-mid .stops-text{
+    font-size:11px;
+    color:var(--ink-soft);
+    font-weight:500;
+  }
+  .dep-arrive-col{
+    text-align:right;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .dep-arrive-col .t{
+    font-family:'Inter',system-ui,sans-serif;
+    font-weight:600;
+    font-size:15.5px;
+    color:var(--brown-900);
+  }
+  .dep-arrive-col .k{
+    font-size:10px;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .dep-arrive-col .chevron{
+    width:16px;height:16px;
+    color:var(--ink-soft);
+    flex-shrink:0;
+    transition:transform .2s ease;
+  }
+  .dep-row.is-expanded .dep-arrive-col .chevron{ transform:rotate(180deg); }
+  .chip{
+    display:inline-block;
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:0.4px;
+    padding:2px 7px;
+    border-radius:8px;
+  }
+  .chip.express{ background:#FBE7B4; color:#8A5A00; }
+  .chip.local{ background:var(--sand-300); color:var(--ink-soft); }
+
+  /* ---------- Expanded departure actions ---------- */
+  .dep-expand{
+    margin-top:12px;
+    padding-top:12px;
+  }
+  .dep-stop-detail{
+    margin-bottom:14px;
+  }
+  .stop-rail-mini{
+    display:flex;
+    align-items:center;
+    gap:4px;
+  }
+  .stop-rail-mini .cap{
+    width:7px;height:7px;border-radius:50%;
+    flex-shrink:0;
+    background:var(--blue);
+  }
+  .stop-rail-mini .cap.to{ background:var(--red); }
+  .stop-rail-mini .seg{
+    flex:1;
+    height:2px;
+    background:var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:space-evenly;
+    min-width:6px;
+  }
+  .stop-rail-mini .seg i{
+    width:5px;height:5px;border-radius:50%;
+    background:var(--tan-500);
+  }
+  .dep-actions{
+    display:flex;
+    gap:8px;
+  }
+  .expand-action{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:10px 8px;
+    border-radius:12px;
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:12.5px;
+    font-weight:700;
+    border:1.5px solid var(--line);
+    background:var(--sand-100);
+    color:var(--brown-800);
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .expand-action svg{ width:15px;height:15px; flex-shrink:0; }
+  .expand-action.buy-tickets-link{
+    background:var(--blue);
+    border-color:var(--blue-dark);
+    color:#fff;
+  }
+  .expand-action.select-my-train-btn.is-selected{
+    background:var(--yellow);
+    border-color:var(--yellow-dark);
+    color:var(--brown-900);
+  }
+  .expand-action:active{ transform:scale(0.97); }
+
+  .footer-note{
+    text-align:center;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    padding:18px 24px 4px;
+    line-height:1.5;
+  }
+
+  .sr-only{
+    position:absolute; width:1px;height:1px;
+    padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="screen">
+    <div class="header safe-top">
+      <div class="header-row">
+        <div class="brand">
+          <div class="brand-mark"><img src="data:image/png;base64,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" alt="Meep Meep roadrunner icon"></div>
+          <div>
+            <div class="brand-name">Meep Meep</div>
+            <div class="brand-sub">NM Rail Runner</div>
+          </div>
+        </div>
+        <div class="date-label">
+          <svg class="date-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9.5h18" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span id="datePill">Wed, Jul 1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="route-bar" id="routeBarBtn" type="button">
+        <div class="route-bar-left">
+          <span class="dir-chip" id="dirChip">↑ Northbound</span>
+          <div class="route-bar-title" id="routeTitle">Belen<span class="arrow">→</span>Santa Fe Depot</div>
+        </div>
+        <span class="edit-icon" id="editIcon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 20l4.2-.9L18.5 8.8a1.5 1.5 0 0 0 0-2.1l-1.2-1.2a1.5 1.5 0 0 0-2.1 0L4.9 15.8 4 20Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+    </div>
+
+    <div class="section" id="resultsSection">
+      <!-- populated by JS -->
+    </div>
+
+    <div class="footer-note safe-bottom">
+      Sample schedule for prototype purposes — not official Rio Metro departure times.
+    </div>
+  </div>
+
+  <div class="sheet-overlay" id="sheetOverlay">
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Edit trip">
+      <div class="sheet-handle"></div>
+      <h3>Plan your trip</h3>
+
+      <div class="direction-toggle">
+        <button class="dir-btn active" id="btnNorth" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M12 5l-6 6M12 5l6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Northbound
+        </button>
+        <button class="dir-btn" id="btnSouth" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M12 19l-6-6M12 19l6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Southbound
+        </button>
+      </div>
+
+      <div class="ticket">
+        <div class="ticket-row">
+          <span class="ticket-dot from"></span>
+          <div class="ticket-field">
+            <label for="fromSelect">Departing</label>
+            <select class="ticket-select" id="fromSelect" aria-label="Departure station"></select>
+          </div>
+        </div>
+        <div class="ticket-divider"></div>
+        <div class="ticket-row">
+          <span class="ticket-dot to"></span>
+          <div class="ticket-field">
+            <label for="toSelect">Arriving</label>
+            <select class="ticket-select" id="toSelect" aria-label="Destination station"></select>
+          </div>
+        </div>
+      </div>
+      <div class="swap-wrap">
+        <button class="swap-btn" id="swapBtn" type="button" aria-label="Swap stations">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M7 7h11l-3-3M17 17H6l3 3" stroke="#5A3821" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <button class="sheet-done" id="sheetDone" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  // ---------------- Station data (south → north order, matches real NMRX station order) ----------------
+  var STATIONS = [
+    { id:"belen",    name:"Belen" },
+    { id:"loslunas",  name:"Los Lunas" },
+    { id:"isleta",    name:"Isleta Pueblo" },
+    { id:"sunport",   name:"Bernalillo County" },
+    { id:"dtabq",     name:"Downtown Albuquerque" },
+    { id:"montano",   name:"Montaño", minor:true },
+    { id:"losranchos",name:"Los Ranchos / Journal Center" },
+    { id:"sandia",    name:"Sandia Pueblo" },
+    { id:"dtbern",    name:"Downtown Bernalillo" },
+    { id:"sandoval",  name:"Sandoval County / US 550", minor:true },
+    { id:"kewa",      name:"Kewa" },
+    { id:"nm599",     name:"Santa Fe County / NM 599" },
+    { id:"zia",       name:"Zia Road", minor:true },
+    { id:"southcap",  name:"South Capitol" },
+    { id:"santafe",   name:"Santa Fe Depot" }
+  ];
+
+  // minutes to travel from STATIONS[i] to STATIONS[i+1]
+  var SEG_MIN = [12,10,8,7,6,4,6,5,5,10,15,5,4,3];
+  var DWELL = 1;
+
+  function toMin(hhmm){
+    var p = hhmm.split(":");
+    return parseInt(p[0],10)*60 + parseInt(p[1],10);
+  }
+
+  // Departure anchor times at the *origin* of each direction.
+  var NORTH_ORIGINS = [ // depart Belen
+    ["05:15",false],["06:10",true],["07:05",false],["08:10",false],
+    ["09:40",false],["11:10",false],["12:40",false],["14:10",false],
+    ["15:40",true],["17:10",false],["18:40",false],["20:10",false]
+  ];
+  var SOUTH_ORIGINS = [ // depart Santa Fe Depot
+    ["05:39",true],["07:08",false],["08:35",false],["10:11",false],
+    ["11:45",false],["13:15",false],["14:45",false],["16:15",true],
+    ["17:45",false],["19:15",false],["20:45",false]
+  ];
+
+  function buildTrains(direction, originList){
+    var order = direction === "N"
+      ? STATIONS.map(function(s,i){return i;})
+      : STATIONS.map(function(s,i){return i;}).reverse();
+
+    var trains = [];
+    originList.forEach(function(entry, tIndex){
+      var startMin = toMin(entry[0]);
+      var express = entry[1];
+      var t = startMin;
+      var stops = {};
+      order.forEach(function(stationIdx, k){
+        if(k === 0){
+          stops[stationIdx] = { time:t, stops:true };
+          return;
+        }
+        var prevIdx = order[k-1];
+        var segIdx = Math.min(prevIdx, stationIdx);
+        t += SEG_MIN[segIdx];
+        var isLast = (k === order.length-1);
+        var skip = express && STATIONS[stationIdx].minor && !isLast;
+        stops[stationIdx] = { time:t, stops: !skip };
+        if(!skip) t += DWELL;
+      });
+      trains.push({ id:direction+"-"+tIndex, direction:direction, express:express, stops:stops });
+    });
+    return trains;
+  }
+
+  var TRAINS_N = buildTrains("N", NORTH_ORIGINS);
+  var TRAINS_S = buildTrains("S", SOUTH_ORIGINS);
+
+  // ---------------- Ticket links (by device type) ----------------
+  var TICKET_LINKS = {
+    ios: "https://apps.apple.com/pl/app/rail-runner/id6472059317",
+    android: "https://play.google.com/store/apps/details?id=com.justride.riometro&hl=en&gl=US"
+  };
+  function getTicketLink(){
+    var ua = navigator.userAgent || navigator.vendor || "";
+    if(/Android/i.test(ua)) return TICKET_LINKS.android;
+    if(/iPhone|iPad|iPod/i.test(ua)) return TICKET_LINKS.ios;
+    return TICKET_LINKS.ios; // desktop/unknown fallback
+  }
+
+  // ---------------- Icons (inline SVG strings) ----------------
+  var ICON_STAR_OUTLINE = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.8 2.6-5.4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+  var ICON_STAR_FILLED = '<svg viewBox="0 0 24 24" fill="var(--red)"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.8 2.6-5.4Z"/></svg>';
+  var ICON_STAR_BADGE = '<svg class="star-badge" viewBox="0 0 24 24" fill="#DEA01E"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.8 2.6-5.4Z"/></svg>';
+  var ICON_TICKET = '<svg viewBox="0 0 24 24" fill="none"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 7.5v9" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.2 2.2"/></svg>';
+  var ICON_CHEVRON = '<svg class="chevron" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  // ---------------- State ----------------
+  var state = {
+    direction: "N",       // "N" or "S"
+    fromIdx: 0,            // Belen
+    toIdx: 14,               // Santa Fe Depot
+    filter: "all",            // "all" | "express" | "local"
+    filterMenuOpen: false,     // whether the filter dropdown menu is open
+    expandedTripId: null,      // trip id whose row is expanded, or null
+    selectedTripId: null        // trip id pinned as "My Train", or null
+  };
+
+  var els = {
+    btnNorth: document.getElementById("btnNorth"),
+    btnSouth: document.getElementById("btnSouth"),
+    fromSelect: document.getElementById("fromSelect"),
+    toSelect: document.getElementById("toSelect"),
+    swapBtn: document.getElementById("swapBtn"),
+    resultsSection: document.getElementById("resultsSection"),
+    datePill: document.getElementById("datePill"),
+    routeBarBtn: document.getElementById("routeBarBtn"),
+    routeTitle: document.getElementById("routeTitle"),
+    dirChip: document.getElementById("dirChip"),
+    sheetOverlay: document.getElementById("sheetOverlay"),
+    sheet: document.getElementById("sheet"),
+    sheetDone: document.getElementById("sheetDone"),
+    editIcon: document.getElementById("editIcon")
+  };
+
+  function openSheet(){
+    els.sheetOverlay.classList.add("open");
+    els.editIcon.classList.add("is-active");
+  }
+  function closeSheet(){
+    els.sheetOverlay.classList.remove("open");
+    els.editIcon.classList.remove("is-active");
+  }
+  els.routeBarBtn.addEventListener("click", openSheet);
+  els.sheetDone.addEventListener("click", closeSheet);
+  els.sheetOverlay.addEventListener("click", function(e){
+    if(e.target === els.sheetOverlay) closeSheet();
+  });
+
+  function orderedIndices(direction){
+    var idx = STATIONS.map(function(s,i){return i;});
+    return direction === "N" ? idx : idx.slice().reverse();
+  }
+
+  function isValidPair(direction, fromIdx, toIdx){
+    return direction === "N" ? fromIdx < toIdx : fromIdx > toIdx;
+  }
+
+  function populateSelects(){
+    // FROM: all stations, in travel order for current direction
+    var order = orderedIndices(state.direction);
+    els.fromSelect.innerHTML = "";
+    order.forEach(function(idx){
+      var opt = document.createElement("option");
+      opt.value = idx;
+      opt.textContent = STATIONS[idx].name;
+      if(idx === state.fromIdx) opt.selected = true;
+      els.fromSelect.appendChild(opt);
+    });
+
+    // TO: only stations reachable after `from` in current direction
+    var fromPos = order.indexOf(state.fromIdx);
+    var toOptions = order.slice(fromPos+1);
+    els.toSelect.innerHTML = "";
+    if(toOptions.length === 0){
+      var opt0 = document.createElement("option");
+      opt0.textContent = "No stations ahead";
+      els.toSelect.appendChild(opt0);
+      state.toIdx = null;
+      return;
+    }
+    if(toOptions.indexOf(state.toIdx) === -1){
+      state.toIdx = toOptions[toOptions.length-1]; // default to end of line
+    }
+    toOptions.forEach(function(idx){
+      var opt = document.createElement("option");
+      opt.value = idx;
+      opt.textContent = STATIONS[idx].name;
+      if(idx === state.toIdx) opt.selected = true;
+      els.toSelect.appendChild(opt);
+    });
+  }
+
+  function fmtTime(min){
+    var m = ((min % 1440) + 1440) % 1440;
+    var h = Math.floor(m/60);
+    var mm = m % 60;
+    var ap = h >= 12 ? "PM" : "AM";
+    var h12 = h % 12; if(h12 === 0) h12 = 12;
+    return { time: h12 + ":" + (mm<10?"0"+mm:mm), ap: ap };
+  }
+
+  function fmtCountdown(mins){
+    mins = Math.max(mins, 0);
+    if(mins <= 120){
+      return [{ n: String(mins), u: "min" }];
+    }
+    var hrs = Math.floor(mins/60);
+    var rem = mins % 60;
+    return [{ n: String(hrs), u: "hr" }, { n: String(rem), u: "min" }];
+  }
+
+  function getTrainsForTrip(){
+    var trains = state.direction === "N" ? TRAINS_N : TRAINS_S;
+    if(state.toIdx === null) return [];
+    var list = [];
+    trains.forEach(function(train){
+      var dep = train.stops[state.fromIdx];
+      var arr = train.stops[state.toIdx];
+      if(!dep || !arr || !dep.stops || !arr.stops) return;
+      // count intermediate stops actually served between from and to
+      var order = orderedIndices(state.direction);
+      var fromPos = order.indexOf(state.fromIdx);
+      var toPos = order.indexOf(state.toIdx);
+      var stopCount = 0;
+      for(var p = fromPos+1; p < toPos; p++){
+        var s = train.stops[order[p]];
+        if(s && s.stops) stopCount++;
+      }
+      list.push({
+        id: train.id,
+        depMin: dep.time,
+        arrMin: arr.time,
+        express: train.express,
+        stopCount: stopCount
+      });
+    });
+    list.sort(function(a,b){ return a.depMin - b.depMin; });
+    return list;
+  }
+
+  function nowMinutes(){
+    var d = new Date();
+    return d.getHours()*60 + d.getMinutes();
+  }
+
+  var FILTER_LABELS = { all: "All", express: "Express", local: "Local" };
+
+  function buildFilterDropdown(){
+    var options = ["all", "express", "local"].map(function(key){
+      return '<button class="filter-dropdown-option' + (state.filter===key?" active":"") + '" data-filter="' + key + '" type="button" role="option">' + FILTER_LABELS[key] + '</button>';
+    }).join("");
+
+    return '<div class="filter-dropdown' + (state.filterMenuOpen?" open":"") + '">' +
+      '<button class="filter-dropdown-btn" type="button" aria-haspopup="listbox" aria-expanded="' + (state.filterMenuOpen?"true":"false") + '">' +
+        '<span>' + FILTER_LABELS[state.filter] + '</span>' + ICON_CHEVRON +
+      '</button>' +
+      '<div class="filter-dropdown-menu" role="listbox">' + options + '</div>' +
+    '</div>';
+  }
+
+  function renderStopRail(count, big){
+    var dots = "";
+    for(var i=0;i<count;i++){ dots += "<i></i>"; }
+    return dots;
+  }
+
+  function render(){
+    els.datePill.textContent = new Date().toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
+
+    var fromName = STATIONS[state.fromIdx].name;
+    var toName = state.toIdx !== null ? STATIONS[state.toIdx].name : "—";
+
+    els.dirChip.textContent = state.direction === "N" ? "↑ Northbound" : "↓ Southbound";
+    els.routeTitle.innerHTML = fromName + '<span class="arrow">→</span>' + toName;
+
+    if(state.toIdx === null){
+      els.resultsSection.innerHTML =
+        '<div class="state-card"><div class="icon">🌵</div>' +
+        '<h3>Pick a destination</h3>' +
+        '<p>Choose an arrival station to see upcoming departures.</p></div>';
+      return;
+    }
+
+    var allTrips = getTrainsForTrip();
+    var selectedTrip = null;
+    if(state.selectedTripId){
+      for(var si=0; si<allTrips.length; si++){
+        if(allTrips[si].id === state.selectedTripId){ selectedTrip = allTrips[si]; break; }
+      }
+      if(!selectedTrip) state.selectedTripId = null; // stale reference, drop it
+    }
+
+    var trips = allTrips;
+    if(state.filter === "express") trips = trips.filter(function(t){ return t.express; });
+    if(state.filter === "local") trips = trips.filter(function(t){ return !t.express; });
+
+    var now = nowMinutes();
+    var upcoming = trips.filter(function(t){ return t.depMin >= now; });
+
+    var html = "";
+
+    var heroTrip = selectedTrip || upcoming[0];
+    var isMyTrainMode = !!selectedTrip;
+
+    if(!heroTrip){
+      var first = trips[0];
+      var firstLabel = "—";
+      if(first){
+        var ft = fmtTime(first.depMin);
+        firstLabel = ft.time + " " + ft.ap;
+      }
+      html += '<div class="state-card"><div class="icon">🌅</div>' +
+        '<h3>No more trains today</h3>' +
+        '<p>' + fromName + ' → ' + toName + ' service has wrapped up for today.</p>' +
+        '<span class="next-tomorrow">First train tomorrow · ' + firstLabel + '</span></div>';
+      html += '<div class="list-head"><h2>Today’s Departures</h2>' + buildFilterDropdown() + '</div>';
+    } else {
+      var mins = heroTrip.depMin - now;
+      var dep = fmtTime(heroTrip.depMin);
+      var arr = fmtTime(heroTrip.arrMin);
+      var cdParts = fmtCountdown(mins);
+      var cdHtml = cdParts.map(function(p){
+        return '<span class="num">' + p.n + '</span><span class="unit">' + p.u + '</span>';
+      }).join("");
+
+      html += '<div class="hero">' +
+        '<div class="hero-top">' +
+          '<span class="hero-eyebrow">' + (isMyTrainMode ? "★ My Train Departs In" : "Next Train Departs In") + '</span>' +
+          '<span class="badge ' + (heroTrip.express ? "" : "local") + '">' + (heroTrip.express ? "Express" : "Local") + '</span>' +
+        '</div>' +
+        '<div class="hero-countdown">' + cdHtml + '</div>' +
+        '<div class="hero-route">' + fromName + '<span class="arrow">→</span>' + toName + '</div>' +
+        '<div class="hero-times">' +
+          '<div class="hero-time-block"><div class="k">Departs</div><div class="v">' + dep.time + ' ' + dep.ap + '</div></div>' +
+          '<div class="hero-time-block"><div class="k">Arrives</div><div class="v">' + arr.time + ' ' + arr.ap + '</div></div>' +
+        '</div>' +
+      '</div>';
+
+      html += '<div class="list-head"><h2>Today’s Departures</h2>' + buildFilterDropdown() + '</div>';
+
+      var ticketLink = getTicketLink();
+
+      upcoming.forEach(function(t, i){
+        var d = fmtTime(t.depMin);
+        var a = fmtTime(t.arrMin);
+        var sText = t.stopCount === 0 ? "Nonstop" : (t.stopCount + (t.stopCount === 1 ? " stop" : " stops"));
+        var sTextFull = t.stopCount === 0 ? "Nonstop" : (sText + " from " + fromName + " to " + toName);
+        var rowIsSelected = t.id === state.selectedTripId;
+        var rowIsExpanded = t.id === state.expandedTripId;
+        var rowClass = "dep-row" + (rowIsSelected ? " is-my-train" : "") + (rowIsExpanded ? " is-expanded" : "");
+
+        html += '<div class="' + rowClass + '" data-trip-id="' + t.id + '">' +
+          '<div class="dep-row-top">' +
+            '<div class="dep-time-col"><div class="t">' + d.time + (rowIsSelected ? ICON_STAR_BADGE : '') + '</div><div class="ap">' + d.ap + '</div></div>' +
+            '<div class="dep-mid">' +
+              '<div class="stops-text">' + (rowIsExpanded ? sTextFull : sText) + '</div>' +
+              (rowIsExpanded ? '' : '<div class="dots-row"><span class="end"></span><span class="track"></span><span class="end last"></span></div>') +
+            '</div>' +
+            '<div class="dep-arrive-col"><div><div class="t">' + a.time + '</div><div class="k">' + a.ap + '</div></div>' + ICON_CHEVRON + '</div>' +
+          '</div>' +
+          (rowIsExpanded ?
+            '<div class="dep-expand">' +
+              '<div class="dep-stop-detail">' +
+                '<div class="stop-rail-mini"><span class="cap from"></span><span class="seg">' + renderStopRail(t.stopCount) + '</span><span class="cap to"></span></div>' +
+              '</div>' +
+              '<div class="dep-actions">' +
+                '<a class="expand-action buy-tickets-link" href="' + ticketLink + '" target="_blank" rel="noopener noreferrer">' + ICON_TICKET + 'Buy Tickets</a>' +
+                '<button class="expand-action select-my-train-btn' + (rowIsSelected ? " is-selected" : "") + '" data-trip-id="' + t.id + '" type="button">' +
+                  (rowIsSelected ? ICON_STAR_FILLED + 'Train Selected' : ICON_STAR_OUTLINE + 'Select My Train') +
+                '</button>' +
+              '</div>' +
+            '</div>'
+          : '') +
+        '</div>';
+      });
+    }
+
+    els.resultsSection.innerHTML = html;
+  }
+
+  function clearTripSelection(){
+    state.selectedTripId = null;
+    state.expandedTripId = null;
+  }
+
+  function setDirection(dir){
+    if(state.direction === dir) return;
+    // flip from/to so the trip still makes sense in the new direction
+    var oldFrom = state.fromIdx, oldTo = state.toIdx;
+    state.direction = dir;
+    state.fromIdx = oldTo !== null ? oldTo : oldFrom;
+    state.toIdx = oldFrom;
+    if(!isValidPair(dir, state.fromIdx, state.toIdx)){
+      var order = orderedIndices(dir);
+      state.fromIdx = order[0];
+      state.toIdx = order[order.length-1];
+    }
+    clearTripSelection();
+    els.btnNorth.classList.toggle("active", dir === "N");
+    els.btnSouth.classList.toggle("active", dir === "S");
+    populateSelects();
+    render();
+  }
+
+  els.btnNorth.addEventListener("click", function(){ setDirection("N"); });
+  els.btnSouth.addEventListener("click", function(){ setDirection("S"); });
+
+  els.fromSelect.addEventListener("change", function(){
+    state.fromIdx = parseInt(this.value,10);
+    clearTripSelection();
+    populateSelects();
+    render();
+  });
+  els.toSelect.addEventListener("change", function(){
+    state.toIdx = parseInt(this.value,10);
+    clearTripSelection();
+    render();
+  });
+
+  els.swapBtn.addEventListener("click", function(){
+    if(state.toIdx === null) return;
+    var newFrom = state.toIdx, newTo = state.fromIdx;
+    state.direction = state.direction === "N" ? "S" : "N";
+    state.fromIdx = newFrom;
+    state.toIdx = newTo;
+    clearTripSelection();
+    els.btnNorth.classList.toggle("active", state.direction === "N");
+    els.btnSouth.classList.toggle("active", state.direction === "S");
+    populateSelects();
+    render();
+  });
+
+  els.resultsSection.addEventListener("click", function(e){
+    var dropdownToggle = e.target.closest(".filter-dropdown-btn");
+    if(dropdownToggle){
+      state.filterMenuOpen = !state.filterMenuOpen;
+      render();
+      return;
+    }
+
+    var dropdownOption = e.target.closest(".filter-dropdown-option");
+    if(dropdownOption){
+      state.filter = dropdownOption.getAttribute("data-filter");
+      state.filterMenuOpen = false;
+      render();
+      return;
+    }
+
+    if(state.filterMenuOpen && !e.target.closest(".filter-dropdown")){
+      state.filterMenuOpen = false;
+      render();
+      return;
+    }
+
+    var selectBtn = e.target.closest(".select-my-train-btn");
+    if(selectBtn){
+      var btnTripId = selectBtn.getAttribute("data-trip-id");
+      state.selectedTripId = (state.selectedTripId === btnTripId) ? null : btnTripId;
+      render();
+      return;
+    }
+
+    var buyLink = e.target.closest(".buy-tickets-link");
+    if(buyLink) return; // let the link navigate normally, don't toggle the row
+
+    var row = e.target.closest(".dep-row");
+    if(row){
+      var rowTripId = row.getAttribute("data-trip-id");
+      state.expandedTripId = (state.expandedTripId === rowTripId) ? null : rowTripId;
+      render();
+    }
+  });
+
+  populateSelects();
+  render();
+  setInterval(render, 15000);
+
+})();
+</script>
+</body>
+</html>
